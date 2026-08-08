@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+{% block title %}
+  {% if joriy_papka %}{{ joriy_papka.nom }} — {% endif %}Mening Diskum
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center gap-3 flex-shrink-0">
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-1 text-sm flex-1 min-w-0 overflow-hidden">
+      <a href="{% url 'storage:dashboard' %}"
+         class="text-slate-500 hover:text-blue-600 font-medium transition-colors flex-shrink-0">
+        <i class="fas fa-house mr-1 text-xs"></i>Mening Diskum
+      </a>
+      {% for papka in non %}
+        <i class="fas fa-chevron-right text-slate-300 text-xs flex-shrink-0"></i>
+        <a href="{% url 'storage:papka' papka.id %}"
+           class="{% if forloop.last %}text-slate-800 font-semibold{% else %}text-slate-500 hover:text-blue-600{% endif %} truncate transition-colors">
+          {{ papka.nom }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <button onclick="papkaYaratishModal()"
+              class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600
+                     bg-slate-100 hover:bg-slate-200 rounded-lg transition-all">
+        <i class="fas fa-folder-plus text-xs"></i>
+        <span class="hidden sm:inline">Yangi papka</span>
+      </button>
+      <button onclick="document.getElementById('faylInput').click()"
+              class="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white
+                     bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700
+                     rounded-lg shadow-sm shadow-blue-200 transition-all active:scale-95">
+        <i class="fas fa-arrow-up-from-bracket text-xs"></i>
+        <span>Yuklash</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Hidden file inputs -->
+  <input type="file" id="faylInput" multiple class="hidden" onchange="fayllariYuklash(this.files)" />
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="flex-1 overflow-auto p-6"
+       id="asosiyMaydon"
+       ondragover="dragOver(event)"
+       ondragleave="dragLeave(event)"
+       ondrop="dropFayllar(event)">
+
+    <!-- Empty state -->
+    {% if not papkalar and not fayllar %}
+    <div class="flex flex-col items-center justify-center h-full text-center py-20" id="bomMaydon">
+      <div class="w-24 h-24 bg-blue-50 rounded-3xl flex items-center justify-center mb-4">
+        <i class="fas fa-cloud-arrow-up text-4xl text-blue-300"></i>
+      </div>
+      <h3 class="text-lg font-semibold text-slate-600 mb-1">Hali hech narsa yo'q</h3>
+      <p class="text-slate-400 text-sm mb-5">Fayllarni shu yerga tashlang yoki yuklash tugmasini bosing</p>
+      <button onclick="document.getElementById('faylInput').click()"
+              class="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold
+                     rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-200">
+        <i class="fas fa-plus"></i>Fayl yuklash
+      </button>
+    </div>
+    {% endif %}
+
+    <!-- Papkalar -->
+    {% if papkalar %}
+    <div class="mb-6">
+      <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+        Papkalar ({{ papkalar.count }})
+      </h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3" id="papkalarGrid">
+        {% for papka in papkalar %}
+        <div class="group bg-white rounded-2xl p-4 border border-slate-200 hover:border-blue-300
+                    hover:shadow-md cursor-pointer transition-all relative"
+             ondblclick="window.location='{% url 'storage:papka' papka.id %}'"
+             onclick="elementTanlash(this)"
+             data-tip="Ochish uchun ikki marta bosing">
+          <!-- Actions -->
+          <div class="absolute top-2 right-2 hidden group-hover:flex items-center gap-1 z-10">
+            <button onclick="event.stopPropagation(); papkaOchirish({{ papka.id }}, '{{ papka.nom }}')"
+                    class="w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-slate-200
+                           text-slate-400 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
+              <i class="fas fa-trash text-xs"></i>
+            </button>
+          </div>
+          <!-- Icon -->
+          <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center mb-3 mx-auto">
+            <i class="fas fa-folder text-3xl text-amber-400"></i>
+          </div>
+          <p class="text-xs font-semibold text-slate-700 text-center truncate">{{ papka.nom }}</p>
+          <p class="text-xs text-slate-400 text-center mt-0.5">
+            {{ papka.yaratilgan|date:"d.m.Y" }}
+          </p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Fayllar -->
+    {% if fayllar %}
+    <div>
+      <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+        Fayllar ({{ fayllar.count }})
+      </h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3" id="faylllarGrid">
+        {% for fayl in fayllar %}
+        <div class="group bg-white rounded-2xl p-4 border border-slate-200 hover:border-blue-300
+                    hover:shadow-md cursor-pointer transition-all relative"
+             onclick="elementTanlash(this)">
+          <!-- Actions -->
+          <div class="absolute top-2 right-2 hidden group-hover:flex items-center gap-1 z-10">
+            <a href="{% url 'storage:fayl_yuklab_olish' fayl.id %}"
+               onclick="event.stopPropagation()"
+               class="w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-slate-200
+                      text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-all shadow-sm">
+              <i class="fas fa-download text-xs"></i>
+            </a>
+            <button onclick="event.stopPropagation(); faylOchirish({{ fayl.id }}, '{{ fayl.nom }}')"
+                    class="w-7 h-7 flex items-center justify-center bg-white rounded-lg border border-slate-200
+                           text-slate-400 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
+              <i class="fas fa-trash text-xs"></i>
+            </button>
+          </div>
+
+          <!-- Icon / Preview -->
+          <div class="w-full aspect-square max-h-20 flex items-center justify-center mb-3 rounded-xl overflow-hidden
+                      {% if fayl.rasm_mi %}bg-slate-100{% else %}bg-slate-50{% endif %}">
+            {% if fayl.rasm_mi %}
+              <img src="{{ fayl.fayl.url }}" class="w-full h-full object-cover rounded-xl"
+                   ondblclick="event.stopPropagation(); window.location='{% url 'storage:fayl_korish' fayl.id %}'"
+                   alt="{{ fayl.nom }}" loading="lazy" />
+            {% else %}
+              <span class="text-4xl">{{ fayl.ikonka }}</span>
+            {% endif %}
+          </div>
+
+          <p class="text-xs font-semibold text-slate-700 text-center truncate" title="{{ fayl.nom }}">
+            {{ fayl.nom }}
+          </p>
+          <p class="text-xs text-slate-400 text-center mt-0.5">{{ fayl.hajm_formatlangan }}</p>
+
+          <!-- Open button on hover (for non-images) -->
+          {% if not fayl.rasm_mi %}
+          <a href="{% url 'storage:fayl_korish' fayl.id %}"
+             onclick="event.stopPropagation()"
+             class="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity
+                    flex items-center justify-center"
+             style="background:rgba(255,255,255,0.9)">
+            <span class="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg shadow">
+              <i class="fas fa-eye"></i>Ochish
+            </span>
+          </a>
+          {% else %}
+          <a href="{% url 'storage:fayl_korish' fayl.id %}"
+             onclick="event.stopPropagation()"
+             class="absolute bottom-2 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <span class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full shadow">
+              <i class="fas fa-expand text-xs"></i>Ko'rish
+            </span>
+          </a>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Drag overlay -->
+    <div id="dragOverlay" class="hidden fixed inset-0 bg-blue-600/10 backdrop-blur-sm z-50
+                                  flex items-center justify-center pointer-events-none">
+      <div class="bg-white rounded-3xl shadow-2xl p-10 text-center border-4 border-dashed border-blue-400">
+        <i class="fas fa-cloud-arrow-up text-6xl text-blue-400 mb-4"></i>
+        <p class="text-xl font-bold text-blue-600">Fayllarni bu yerga tashlang</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload progress -->
+  <div id="yuklashProgress" class="hidden fixed bottom-6 right-6 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 w-72 z-50">
+    <div class="flex items-center gap-3 mb-2">
+      <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+        <i class="fas fa-arrow-up-from-bracket text-blue-600 text-sm yuklanyapti"></i>
+      </div>
+      <div class="flex-1">
+        <p class="text-sm font-semibold text-slate-700">Yuklanmoqda...</p>
+        <p id="yuklashMalumot" class="text-xs text-slate-400"></p>
+      </div>
+    </div>
+    <div class="w-full bg-slate-100 rounded-full h-1.5">
+      <div id="yuklashBar" class="bg-blue-600 h-1.5 rounded-full transition-all" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAPKA YARATISH MODAL -->
+<div id="papkaModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+    <h3 class="text-base font-bold text-slate-800 mb-4">
+      <i class="fas fa-folder-plus text-amber-500 mr-2"></i>Yangi papka yaratish
+    </h3>
+    <input type="text" id="papkaNomi"
+           placeholder="Papka nomi"
+           class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm outline-none
+                  focus:border-blue-500 transition-all mb-4"
+           onkeydown="if(event.key==='Enter') papkaYaratish()" />
+    <div class="flex gap-2">
+      <button onclick="document.getElementById('papkaModal').classList.add('hidden')"
+              class="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-50 transition-all">
+        Bekor qilish
+      </button>
+      <button onclick="papkaYaratish()"
+              class="flex-1 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all">
+        Yaratish
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- O'CHIRISH CONFIRM MODAL -->
+<div id="ochirModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+    <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+      <i class="fas fa-trash text-2xl text-red-500"></i>
+    </div>
+    <h3 class="text-base font-bold text-slate-800 text-center mb-1">O'chirishni tasdiqlang</h3>
+    <p class="text-sm text-slate-500 text-center mb-5" id="ochirMatn">Bu faylni o'chirishni tasdiqlaysizmi?</p>
+    <div class="flex gap-2">
+      <button onclick="document.getElementById('ochirModal').classList.add('hidden')"
+              class="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-50 transition-all">
+        Bekor qilish
+      </button>
+      <button id="ochirTasdiqlash"
+              class="flex-1 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-all">
+        O'chirish
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const JORIY_PAPKA_ID = "{{ joriy_papka.id|default:'' }}";
+const CSRF_TOKEN = "{{ csrf_token }}";
+
+// ===== FAYL YUKLASH =====
+async function fayllariYuklash(fayllar) {
+  if (!fayllar.length) return;
+  
+  const progress = document.getElementById('yuklashProgress');
+  const bar = document.getElementById('yuklashBar');
+  const malumot = document.getElementById('yuklashMalumot');
+  progress.classList.remove('hidden');
+  
+  const formData = new FormData();
+  for (let f of fayllar) formData.append('fayllar', f);
+  if (JORIY_PAPKA_ID) formData.append('papka_id', JORIY_PAPKA_ID);
+  
+  malumot.textContent = `${fayllar.length} ta fayl yuklanmoqda...`;
+  bar.style.width = '30%';
+  
+  try {
+    const res = await fetch('/disk/yuklash/', {
+      method: 'POST',
+      headers: {'X-CSRFToken': CSRF_TOKEN},
+      body: formData
+    });
+    bar.style.width = '100%';
+    const data = await res.json();
+    if (data.muvaffaqiyat) {
+      setTimeout(() => {
+        progress.classList.add('hidden');
+        bar.style.width = '0%';
+        location.reload();
+      }, 800);
+    }
+  } catch(e) {
+    malumot.textContent = 'Xato yuz berdi';
+    bar.style.width = '0%';
+  }
+}
+
+// ===== DRAG & DROP =====
+function dragOver(e) {
+  e.preventDefault();
+  document.getElementById('dragOverlay').classList.remove('hidden');
+}
+function dragLeave(e) {
+  if (!e.relatedTarget) document.getElementById('dragOverlay').classList.add('hidden');
+}
+function dropFayllar(e) {
+  e.preventDefault();
+  document.getElementById('dragOverlay').classList.add('hidden');
+  const fayllar = e.dataTransfer.files;
+  if (fayllar.length) fayllariYuklash(fayllar);
+}
+
+// ===== PAPKA YARATISH =====
+function papkaYaratishModal() {
+  const modal = document.getElementById('papkaModal');
+  const inp = document.getElementById('papkaNomi');
+  modal.classList.remove('hidden');
+  setTimeout(() => inp.focus(), 100);
+}
+
+async function papkaYaratish() {
+  const nom = document.getElementById('papkaNomi').value.trim();
+  if (!nom) return;
+  
+  try {
+    const res = await fetch('/disk/papka-yaratish/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+      body: JSON.stringify({nom, papka_id: JORIY_PAPKA_ID || null})
+    });
+    const data = await res.json();
+    if (data.muvaffaqiyat) {
+      document.getElementById('papkaModal').classList.add('hidden');
+      document.getElementById('papkaNomi').value = '';
+      location.reload();
+    }
+  } catch(e) {
+    alert("Xato yuz berdi");
+  }
+}
+
+// ===== O'CHIRISH =====
+function faylOchirish(id, nom) {
+  const modal = document.getElementById('ochirModal');
+  document.getElementById('ochirMatn').textContent = `"${nom}" faylini o'chirishni tasdiqlaysizmi?`;
+  document.getElementById('ochirTasdiqlash').onclick = async () => {
+    modal.classList.add('hidden');
+    const res = await fetch(`/disk/fayl/${id}/ochirish/`, {
+      method: 'POST', headers: {'X-CSRFToken': CSRF_TOKEN}
+    });
+    if ((await res.json()).muvaffaqiyat) location.reload();
+  };
+  modal.classList.remove('hidden');
+}
+
+function papkaOchirish(id, nom) {
+  const modal = document.getElementById('ochirModal');
+  document.getElementById('ochirMatn').textContent = `"${nom}" papkasini va ichidagi barcha fayllarni o'chirishni tasdiqlaysizmi?`;
+  document.getElementById('ochirTasdiqlash').onclick = async () => {
+    modal.classList.add('hidden');
+    const res = await fetch(`/disk/papka/${id}/ochirish/`, {
+      method: 'POST', headers: {'X-CSRFToken': CSRF_TOKEN}
+    });
+    if ((await res.json()).muvaffaqiyat) location.reload();
+  };
+  modal.classList.remove('hidden');
+}
+
+function elementTanlash(el) {
+  document.querySelectorAll('.tanlangan').forEach(e => e.classList.remove('tanlangan', 'ring-2', 'ring-blue-400'));
+  el.classList.add('tanlangan', 'ring-2', 'ring-blue-400');
+}
+
+// Close modals on backdrop click
+['papkaModal', 'ochirModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('hidden');
+  });
+});
+</script>
+{% endblock %}

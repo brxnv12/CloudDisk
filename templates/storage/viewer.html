@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% block title %}{{ fayl.nom }} — CloudDisk{% endblock %}
+
+{% block extra_head %}
+{% if korsatish_turi == 'kod' %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css"/>
+{% endif %}
+{% if korsatish_turi == 'word' %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+.ql-container{font-size:15px;font-family:'Georgia',serif;}
+.ql-editor{min-height:500px;padding:40px 60px;}
+.ql-toolbar{background:#f8fafc;border-bottom:1px solid #e2e8f0;}
+</style>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full">
+
+  <!-- ===== TOPBAR ===== -->
+  <div class="bg-white border-b border-slate-200 px-5 py-3 flex items-center gap-3 flex-shrink-0">
+    <!-- Back button -->
+    <a href="{% if fayl.papka %}{% url 'storage:papka' fayl.papka.id %}{% else %}{% url 'storage:dashboard' %}{% endif %}"
+       class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200
+              text-slate-600 transition-all flex-shrink-0">
+      <i class="fas fa-arrow-left text-sm"></i>
+    </a>
+
+    <!-- File icon + name -->
+    <div class="flex items-center gap-2.5 flex-1 min-w-0">
+      <span class="text-2xl flex-shrink-0">{{ fayl.ikonka }}</span>
+      <div class="min-w-0">
+        <h1 class="text-base font-bold text-slate-800 truncate">{{ fayl.nom }}</h1>
+        <p class="text-xs text-slate-400">
+          {{ fayl.hajm_formatlangan }} •
+          {% if korsatish_turi == 'kod' %}Kod muharriri
+          {% elif korsatish_turi == 'word' %}Word hujjat
+          {% elif korsatish_turi == 'rasm' %}Rasm
+          {% elif korsatish_turi == 'pdf' %}PDF hujjat
+          {% elif korsatish_turi == 'video' %}Video fayl
+          {% elif korsatish_turi == 'audio' %}Audio fayl
+          {% else %}Fayl{% endif %}
+          • {{ fayl.yangilangan|date:"d.m.Y H:i" }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex items-center gap-2 flex-shrink-0">
+      {% if korsatish_turi == 'kod' or korsatish_turi == 'word' %}
+      <button id="saqlashBtn" onclick="saqlash()"
+              class="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white
+                     bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600
+                     rounded-xl shadow-sm transition-all active:scale-95">
+        <i class="fas fa-floppy-disk"></i>
+        <span>Saqlash</span>
+      </button>
+      {% endif %}
+      <a href="{% url 'storage:fayl_yuklab_olish' fayl.id %}"
+         class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600
+                bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+        <i class="fas fa-download text-xs"></i>
+        <span class="hidden sm:inline">Yuklab olish</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Saqlash bildirishnomasi -->
+  <div id="saqlashXabar" class="hidden fixed top-5 right-5 z-50 flex items-center gap-2
+                                 bg-emerald-50 border border-emerald-200 text-emerald-700
+                                 px-4 py-3 rounded-xl shadow-lg text-sm font-medium">
+    <i class="fas fa-check-circle text-emerald-500"></i>Saqlandi!
+  </div>
+
+  <!-- ===== CONTENT ===== -->
+  <div class="flex-1 overflow-hidden">
+
+    <!-- ERROR -->
+    {% if xato %}
+    <div class="flex items-center justify-center h-full">
+      <div class="text-center">
+        <div class="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-circle-exclamation text-3xl text-red-400"></i>
+        </div>
+        <p class="text-slate-600 font-medium mb-1">Faylni o'qib bo'lmadi</p>
+        <p class="text-sm text-slate-400 mb-4">{{ xato }}</p>
+        <a href="{% url 'storage:fayl_yuklab_olish' fayl.id %}"
+           class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all">
+          <i class="fas fa-download mr-1.5"></i>Yuklab olish
+        </a>
+      </div>
+    </div>
+
+    <!-- RASM -->
+    {% elif korsatish_turi == 'rasm' %}
+    <div class="h-full flex items-center justify-center bg-slate-900 p-4">
+      <img src="{{ fayl.fayl.url }}" alt="{{ fayl.nom }}"
+           class="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
+    </div>
+
+    <!-- PDF -->
+    {% elif korsatish_turi == 'pdf' %}
+    <iframe src="{{ fayl.fayl.url }}"
+            class="w-full h-full border-0"
+            title="{{ fayl.nom }}"></iframe>
+
+    <!-- VIDEO -->
+    {% elif korsatish_turi == 'video' %}
+    <div class="h-full flex items-center justify-center bg-black p-4">
+      <video controls class="max-w-full max-h-full rounded-xl shadow-2xl" preload="metadata">
+        <source src="{{ fayl.fayl.url }}">
+        <p class="text-white">Brauzeringiz video formati qo'llab-quvvatlamaydi.</p>
+      </video>
+    </div>
+
+    <!-- AUDIO -->
+    {% elif korsatish_turi == 'audio' %}
+    <div class="h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-indigo-900 p-8">
+      <div class="bg-white/10 backdrop-blur rounded-3xl p-10 text-center max-w-md w-full shadow-2xl">
+        <div class="w-24 h-24 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+          <i class="fas fa-music text-5xl text-white"></i>
+        </div>
+        <h2 class="text-white font-bold text-xl mb-1 truncate">{{ fayl.nom }}</h2>
+        <p class="text-white/60 text-sm mb-6">{{ fayl.hajm_formatlangan }}</p>
+        <audio controls class="w-full" preload="metadata">
+          <source src="{{ fayl.fayl.url }}">
+        </audio>
+      </div>
+    </div>
+
+    <!-- KOD / MATN — Monaco Editor -->
+    {% elif korsatish_turi == 'kod' %}
+    <div id="monacoEditor" class="w-full h-full"></div>
+
+    <!-- WORD — Quill Editor -->
+    {% elif korsatish_turi == 'word' %}
+    <div class="h-full overflow-auto bg-gray-100">
+      <div class="max-w-4xl mx-auto my-6 bg-white shadow-lg rounded-xl overflow-hidden">
+        <div id="quillEditor">{{ kontent|safe }}</div>
+      </div>
+    </div>
+
+    <!-- YUKLAB OLISH (boshqa fayllar) -->
+    {% else %}
+    <div class="flex items-center justify-center h-full">
+      <div class="text-center">
+        <span class="text-8xl block mb-5">{{ fayl.ikonka }}</span>
+        <h2 class="text-xl font-bold text-slate-700 mb-2">{{ fayl.nom }}</h2>
+        <p class="text-slate-400 text-sm mb-6">Bu fayl brauzerda ko'rsatilmaydi. Yuklab oling.</p>
+        <a href="{% url 'storage:fayl_yuklab_olish' fayl.id %}"
+           class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold
+                  rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-200">
+          <i class="fas fa-download"></i>Yuklab olish
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+const FAYL_ID = {{ fayl.id }};
+const CSRF_TOKEN = "{{ csrf_token }}";
+const OXIRGI_POZITSIYA = {{ fayl.oxirgi_pozitsiya|safe }};
+
+{% if korsatish_turi == 'kod' %}
+// ===== MONACO EDITOR =====
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+require(['vs/editor/editor.main'], function() {
+  const kengaytma = '{{ fayl.kengaytma }}';
+  const tillar = {
+    '.py':'python','.js':'javascript','.ts':'typescript','.html':'html',
+    '.css':'css','.json':'json','.xml':'xml','.md':'markdown',
+    '.sh':'shell','.yaml':'yaml','.yml':'yaml','.sql':'sql',
+    '.java':'java','.cpp':'cpp','.c':'c','.php':'php','.go':'go',
+    '.rs':'rust','.rb':'ruby','.vue':'html','.jsx':'javascript','.tsx':'typescript',
+  };
+  const til = tillar[kengaytma] || 'plaintext';
+  const kontent = `{{ kontent|escapejs }}`;
+
+  window.muharrir = monaco.editor.create(document.getElementById('monacoEditor'), {
+    value: kontent,
+    language: til,
+    theme: 'vs',
+    fontSize: 14,
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+    minimap: { enabled: true },
+    lineNumbers: 'on',
+    wordWrap: 'on',
+    automaticLayout: true,
+    scrollBeyondLastLine: false,
+    padding: { top: 16, bottom: 16 },
+  });
+
+  // Oxirgi pozitsiyani tiklash
+  if (OXIRGI_POZITSIYA && OXIRGI_POZITSIYA.line) {
+    window.muharrir.setPosition({
+      lineNumber: OXIRGI_POZITSIYA.line || 1,
+      column: OXIRGI_POZITSIYA.col || 1,
+    });
+    window.muharrir.revealPositionInCenter({
+      lineNumber: OXIRGI_POZITSIYA.line || 1,
+      column: OXIRGI_POZITSIYA.col || 1,
+    });
+    window.muharrir.focus();
+  }
+
+  // Ctrl+S bilan saqlash
+  window.muharrir.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => saqlash());
+});
+
+async function saqlash() {
+  const btn = document.getElementById('saqlashBtn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saqlanmoqda...';
+  btn.disabled = true;
+
+  const kursor = window.muharrir.getPosition();
+  await fetch(`/disk/fayl/${FAYL_ID}/saqlash/`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify({
+      kontent: window.muharrir.getValue(),
+      pozitsiya: { line: kursor.lineNumber, col: kursor.column }
+    })
+  });
+
+  btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Saqlash';
+  btn.disabled = false;
+  saqlashXabarKorsatish();
+}
+{% endif %}
+
+{% if korsatish_turi == 'word' %}
+// ===== QUILL EDITOR =====
+const quill = new Quill('#quillEditor', {
+  theme: 'snow',
+  modules: {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ color: [] }, { background: [] }],
+      [{ align: [] }],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ indent: '-1' }, { indent: '+1' }],
+      ['link'],
+      ['clean'],
+    ]
+  }
+});
+
+// Oxirgi pozitsiyani tiklash
+if (OXIRGI_POZITSIYA && OXIRGI_POZITSIYA.quill_index) {
+  try {
+    quill.setSelection(OXIRGI_POZITSIYA.quill_index, 0, 'silent');
+  } catch(e) {}
+}
+
+async function saqlash() {
+  const btn = document.getElementById('saqlashBtn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saqlanmoqda...';
+  btn.disabled = true;
+
+  const sel = quill.getSelection();
+  await fetch(`/disk/fayl/${FAYL_ID}/saqlash/`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify({
+      kontent: quill.root.innerHTML,
+      pozitsiya: { quill_index: sel ? sel.index : 0 }
+    })
+  });
+
+  btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Saqlash';
+  btn.disabled = false;
+  saqlashXabarKorsatish();
+}
+{% endif %}
+
+function saqlashXabarKorsatish() {
+  const el = document.getElementById('saqlashXabar');
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 2500);
+}
+</script>
+
+{% if korsatish_turi == 'kod' %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
+{% endif %}
+{% if korsatish_turi == 'word' %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+{% endif %}
+{% endblock %}

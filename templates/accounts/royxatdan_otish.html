@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}Ro'yxatdan o'tish — CloudDisk{% endblock %}
+
+{% block auth_content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 flex items-center justify-center p-4">
+
+  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute -top-40 -right-40 w-96 h-96 bg-blue-500 opacity-10 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500 opacity-10 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="relative w-full max-w-md">
+    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 pt-8 pb-6 text-center">
+        <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur">
+          <i class="fas fa-cloud text-white text-2xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-white">CloudDisk</h1>
+        <p class="text-blue-100 text-sm mt-1">Yangi hisob yaratish</p>
+      </div>
+
+      <div class="px-8 py-6">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <!-- Ism -->
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+              <i class="fas fa-id-card text-slate-400 mr-1.5"></i>Ism va familiya
+            </label>
+            <input type="text" name="name" value="{{ form.name.value|default:'' }}"
+                   placeholder="Masalan: Aziz Karimov"
+                   class="w-full px-4 py-3 border-2 rounded-xl text-sm transition-all outline-none
+                          {% if form.name.errors %}border-red-400 bg-red-50{% else %}border-slate-200 bg-slate-50 focus:border-blue-500 focus:bg-white{% endif %}"
+                   autocomplete="name" autofocus />
+            {% if form.name.errors %}
+            <p class="text-red-500 text-xs mt-1 flex items-center gap-1">
+              <i class="fas fa-circle-exclamation"></i>{{ form.name.errors.0 }}
+            </p>
+            {% endif %}
+          </div>
+
+          <!-- Username -->
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+              <i class="fas fa-at text-slate-400 mr-1.5"></i>Username
+            </label>
+            <div class="relative">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">@</span>
+              <input type="text" name="username" value="{{ form.username.value|default:'' }}"
+                     id="usernameInp"
+                     placeholder="aziz_99"
+                     class="w-full pl-8 pr-4 py-3 border-2 rounded-xl text-sm transition-all outline-none
+                            {% if form.username.errors %}border-red-400 bg-red-50{% else %}border-slate-200 bg-slate-50 focus:border-blue-500 focus:bg-white{% endif %}"
+                     autocomplete="username"
+                     oninput="usernameFilter(this)" />
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Harf, raqam, _ va . ishlatish mumkin</p>
+            {% if form.username.errors %}
+            <p class="text-red-500 text-xs mt-1 flex items-center gap-1">
+              <i class="fas fa-circle-exclamation"></i>{{ form.username.errors.0 }}
+            </p>
+            {% endif %}
+          </div>
+
+          <!-- Email (ixtiyoriy) -->
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+              <i class="fas fa-envelope text-slate-400 mr-1.5"></i>Email
+              <span class="text-slate-400 font-normal ml-1">(ixtiyoriy)</span>
+            </label>
+            <input type="email" name="email" value="{{ form.email.value|default:'' }}"
+                   placeholder="email@example.com"
+                   class="w-full px-4 py-3 border-2 border-slate-200 bg-slate-50 rounded-xl text-sm
+                          focus:border-blue-500 focus:bg-white transition-all outline-none"
+                   autocomplete="email" />
+          </div>
+
+          <!-- Parol -->
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+              <i class="fas fa-lock text-slate-400 mr-1.5"></i>Parol
+            </label>
+            <div class="relative">
+              <input type="password" name="password" id="parol1"
+                     placeholder="Kamida 6 ta belgi"
+                     class="w-full px-4 py-3 pr-11 border-2 rounded-xl text-sm transition-all outline-none
+                            {% if form.password.errors %}border-red-400 bg-red-50{% else %}border-slate-200 bg-slate-50 focus:border-blue-500 focus:bg-white{% endif %}"
+                     autocomplete="new-password" />
+              <button type="button" onclick="parolKorsatish('parol1', this)"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <i class="fas fa-eye text-sm"></i>
+              </button>
+            </div>
+            {% if form.password.errors %}
+            <p class="text-red-500 text-xs mt-1 flex items-center gap-1">
+              <i class="fas fa-circle-exclamation"></i>{{ form.password.errors.0 }}
+            </p>
+            {% endif %}
+          </div>
+
+          <!-- Parolni tasdiqlash -->
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+              <i class="fas fa-lock text-slate-400 mr-1.5"></i>Parolni tasdiqlash
+            </label>
+            <div class="relative">
+              <input type="password" name="password_again" id="parol2"
+                     placeholder="Parolni qayta kiriting"
+                     class="w-full px-4 py-3 pr-11 border-2 rounded-xl text-sm transition-all outline-none
+                            {% if form.password_again.errors %}border-red-400 bg-red-50{% else %}border-slate-200 bg-slate-50 focus:border-blue-500 focus:bg-white{% endif %}"
+                     autocomplete="new-password" />
+              <button type="button" onclick="parolKorsatish('parol2', this)"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <i class="fas fa-eye text-sm"></i>
+              </button>
+            </div>
+            {% if form.password_again.errors %}
+            <p class="text-red-500 text-xs mt-1 flex items-center gap-1">
+              <i class="fas fa-circle-exclamation"></i>{{ form.password_again.errors.0 }}
+            </p>
+            {% endif %}
+          </div>
+
+          <button type="submit"
+                  class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3.5 rounded-xl
+                         font-semibold text-sm shadow-lg shadow-blue-200 hover:shadow-blue-300
+                         hover:from-blue-700 hover:to-indigo-700 transition-all active:scale-95">
+            <i class="fas fa-user-plus mr-2"></i>Ro'yxatdan o'tish
+          </button>
+        </form>
+
+        <p class="text-center text-sm text-slate-500 mt-5">
+          Hisobingiz bormi?
+          <a href="{% url 'accounts:kirish' %}" class="text-blue-600 font-semibold hover:underline ml-1">
+            Kirish
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function parolKorsatish(id, btn) {
+  const inp = document.getElementById(id);
+  const icon = btn.querySelector('i');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.classList.replace('fa-eye', 'fa-eye-slash');
+  } else {
+    inp.type = 'password';
+    icon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+}
+
+// Faqat ruxsat etilgan belgilar qoldirish
+function usernameFilter(inp) {
+  inp.value = inp.value.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase();
+}
+</script>
+{% endblock %}
